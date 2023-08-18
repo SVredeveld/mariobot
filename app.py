@@ -1,9 +1,7 @@
 import os
 import json
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, Response
 from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
-from slackeventsapi import SlackEventAdapter
 from azure.storage.blob import BlobServiceClient
 
 app = Flask(__name__)
