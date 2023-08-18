@@ -7,7 +7,7 @@ from azure.storage.blob import BlobServiceClient
 app = Flask(__name__)
 
 # Initialize the Slack WebClient with your bot token
-client = WebClient(token=os.environ['SLACK_TOKEN'])
+client = WebClient(token=os.environ.get('SLACK_TOKEN'))
 
 # Load leaderboard data from Azure Blob Storage on startup
 LEADERBOARD_BLOB_CONTAINER = "mariobot-leaderboard"
