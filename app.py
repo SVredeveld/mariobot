@@ -1,6 +1,6 @@
 import os
 import json
-from flask import Flask, request, Response
+from flask import Flask, request, Response, render_template
 from slack_sdk import WebClient
 from azure.storage.blob import BlobServiceClient
 
@@ -224,6 +224,12 @@ def help():
 
     client.chat_postEphemeral(channel=channel_id, user=user_id, text=message)
     return Response(), 200
+
+@app.route('/dashboard')
+def dashboard():
+    leaderboard = get_leaderboard()
+    currentTrack = track_data
+    return render_template('dashboard.html', leaderboard=leaderboard, currentTrack=currentTrack)
 
 if __name__ == '__main__':
     app.run(debug=False)
