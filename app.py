@@ -91,7 +91,7 @@ deadline_data = load_deadline()
 
 # track_data = ''
 
-# track_deadline = ''
+# deadline_data = ''
 
 def get_track():
     if not any(track_data):
@@ -103,13 +103,13 @@ def update_track(message):
     track_data = message
 
 def get_deadline():
-    if not any(track_deadline):
+    if not any(deadline_data):
         return 'sorry, no deadline is set yet'
-    return f"The last day to race on {track_data} is {track_deadline}"
+    return f"The last day to race on {track_data} is {deadline_data}"
 
 def update_deadline(message):
-    global track_deadline
-    track_deadline = message
+    global deadline_data
+    deadline_data = message
 
 def update_leaderboard(user, score):
     leaderboard_data[user] = score
@@ -188,6 +188,7 @@ def setnewtrack():
     update_track(message)
     channel_id = form_data['channel_id']
     testmessage = get_track()
+    save_track()
 
     client.chat_postMessage(channel=channel_id, text=testmessage)
     return Response(), 200
@@ -209,6 +210,7 @@ def setnewdeadline():
     update_deadline(message)
     channel_id = form_data['channel_id']
     testmessage = get_deadline()
+    save_deadline()
 
     client.chat_postMessage(channel=channel_id, text=testmessage)
     return Response(), 200
