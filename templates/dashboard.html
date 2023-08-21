@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">Mario kart time trial</h1>
+        <h2 class="subtitle">Current track: {{currentTrack}}</h2>
+        <div class="leaderboardWrapper">
+            {% for user, time in leaderboard %}
+                <div class="leaderboardItem">
+                    <p >{{ loop.index }}.</p>
+                    <p>{{ user }}</p>
+                    <p>{{ time }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
