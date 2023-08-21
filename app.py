@@ -153,9 +153,10 @@ def time():
 def leaderboard():
     form_data = request.form
     channel_id = form_data['channel_id']
+    user_id = form_data["user_id"]
     
     message = format_leaderboard()
-    client.chat_postMessage(channel=channel_id, text=message)
+    client.chat_postEphemeral(channel=channel_id, user=user_id, text=message)
     return Response(), 200
 
 @app.route('/resetleaderboard', methods=['POST'])
@@ -174,8 +175,10 @@ def track():
     form_data = request.form
     text = get_track()
     channel_id = form_data['channel_id']
+    user_id = form_data["user_id"]
 
-    client.chat_postMessage(channel=channel_id, text=text)
+
+    client.chat_postEphemeral(channel=channel_id, user=user_id, text=text)
     return Response(), 200
 
 @app.route('/setnewtrack', methods=["POST"])
@@ -194,8 +197,9 @@ def deadline():
     form_data = request.form
     text = get_deadline()
     channel_id = form_data['channel_id']
+    user_id = form_data["user_id"]
 
-    client.chat_postMessage(channel=channel_id, text=text)
+    client.chat_postEphemeral(channel=channel_id, user=user_id, text=text)
     return Response(), 200
 
 @app.route('/setnewdeadline', methods=["POST"])
@@ -213,9 +217,10 @@ def setnewdeadline():
 def help():
     form_data = request.form
     channel_id = form_data['channel_id']
+    user_id = form_data['user_id']
     message = "Hi! New here? Let me help you! \n\nThese are the commands you can use:\n\n`/leaderboard` - Shows you the current leaderboard. \n`/track` - Shows the track that our racers are currently destroying. \n`/time` - Wanna join or have a new time? Add it here! \n`/deadline` - We race the current track till this date. After this date, no new times can be added \n \n \nThese next commands are a bit heavier, so don't just run these without chatting with the other racers! \n \n`/setnewtrack` - When the racers pick a new track, you can add the name of this new track here. \n`/setnewdeadline` When a new track is chosen, add a new deadline here. \n`/resetleaderboard` - This whipes the whole leaderboard. BE CAREFUL! Once deleted, the leaderboard CANNOT be restored!"
 
-    client.chat_postMessage(channel=channel_id, text=message, response_type=)
+    client.chat_postEphemeral(channel=channel_id, user=user_id, text=message)
     return Response(), 200
 
 if __name__ == '__main__':
