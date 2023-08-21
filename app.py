@@ -96,7 +96,7 @@ deadline_data = load_deadline()
 def get_track():
     if not any(track_data):
         return 'sorry, no track is selected yet'
-    return "The new track to race on is: " + track_data
+    return f"The new track to race on is: {track_data}"
 
 def update_track(message):
     global track_data
@@ -105,7 +105,7 @@ def update_track(message):
 def get_deadline():
     if not any(track_deadline):
         return 'sorry, no deadline is set yet'
-    return "The last day to race on " + track_data + " is " + track_deadline
+    return f"The last day to race on {track_data} is {track_deadline}"
 
 def update_deadline(message):
     global track_deadline
@@ -160,7 +160,7 @@ def leaderboard():
 def resetleaderboard():
     form_data = request.form
     leaderboardMessage = format_leaderboard()
-    resetmessage = "And the games have ended! Congrats to the winner!"
+    resetmessage = "And the games have ended! Congrats to the winner!\n"
     channel_id = form_data['channel_id']
 
     delete_leaderboard()  # Call the function to reset the leaderboard_data dictionary
