@@ -125,7 +125,7 @@ def format_leaderboard():
             return "Leaderboard is empty."
 
     sorted_leaderboard = get_leaderboard()
-    leaderboard_str = "\n".join([f"{score}     | <@{user}>" for user, score in sorted_leaderboard])
+    leaderboard_str = "\n".join([f"{rank}. {score}     | <@{user}>" for rank, (user, score) in enumerate(sorted_leaderboard, start=1)])
     return f"Leaderboard:\n{leaderboard_str}"
 
 @app.route('/time', methods=['POST'])
@@ -215,7 +215,7 @@ def help():
     channel_id = form_data['channel_id']
     message = "Hi! New here? Let me help you! \n\nThese are the commands you can use:\n\n`/leaderboard` - Shows you the current leaderboard. \n`/track` - Shows the track that our racers are currently destroying. \n`/time` - Wanna join or have a new time? Add it here! \n`/deadline` - We race the current track till this date. After this date, no new times can be added \n \n \nThese next commands are a bit heavier, so don't just run these without chatting with the other racers! \n \n`/setnewtrack` - When the racers pick a new track, you can add the name of this new track here. \n`/setnewdeadline` When a new track is chosen, add a new deadline here. \n`/resetleaderboard` - This whipes the whole leaderboard. BE CAREFUL! Once deleted, the leaderboard CANNOT be restored!"
 
-    client.chat_postMessage(channel=channel_id, text=message)
+    client.chat_postMessage(channel=channel_id, text=message, response_type=)
     return Response(), 200
 
 if __name__ == '__main__':
