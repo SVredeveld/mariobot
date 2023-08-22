@@ -133,7 +133,7 @@ def format_leaderboard():
     leaderboard_str = "\n".join([f"{rank}. {score}     | <@{user}>" for rank, (user, score) in enumerate(sorted_leaderboard, start=1)])
     return f"Leaderboard:\n{leaderboard_str}"
 
-# A function that get's the 'real_name' of a user we use caching since users_list 
+# A function that gets the 'real_name' of a user. We use caching since users_list 
 # gets all users in an organisation and that doesn't change that often
 def get_real_name_from_username(username):
     current_time = time_module.time()
