@@ -1,5 +1,6 @@
 import os
 import json
+import time as time_module
 from flask import Flask, request, Response, render_template
 from slack_sdk import WebClient
 from azure.storage.blob import BlobServiceClient
@@ -15,6 +16,11 @@ LEADERBOARD_BLOB_NAME = "leaderboard.json"
 TRACK_BLOB_NAME = "track.json"
 DEADLINE_BLOB_NAME = "deadline.json"
 
+user_cache = {
+    "users": [],
+    "timestamp": 0
+}
+CACHE_EXPIRATION_TIME = 3600
 
 def connect_leaderboard_blob():
     blob_service_client = BlobServiceClient.from_connection_string(os.environ["AZURE_CONNECTIONSTRING"])
@@ -118,7 +124,6 @@ def get_leaderboard():
     sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1])
     return sorted_leaderboard
 
-
 def format_leaderboard():
     if not any(leaderboard_data):
         if not any(leaderboard_data.values()):
@@ -127,6 +132,26 @@ def format_leaderboard():
     sorted_leaderboard = get_leaderboard()
     leaderboard_str = "\n".join([f"{rank}. {score}     | <@{user}>" for rank, (user, score) in enumerate(sorted_leaderboard, start=1)])
     return f"Leaderboard:\n{leaderboard_str}"
+
+# A function that gets the 'real_name' of a user. We use caching since users_list 
+# gets all users in an organisation and that doesn't change that often
+def get_real_name_from_username(username):
+    current_time = time_module.time()
+    if current_time - user_cache["timestamp"] > CACHE_EXPIRATION_TIME:
+        # If cache is expired, fetch the user list again and update the cache
+        users_list = client.users_list()
+        if users_list.get("ok"):
+            user_cache["users"] = users_list["members"]
+            user_cache["timestamp"] = current_time
+    else:
+        # If cache hasn't expired, use the cached data
+        users_list = {"members": user_cache["users"]}
+
+    for member in users_list["members"]:
+        if 'name' in member and member['name'] == username:
+            return member['real_name']
+
+    return None
 
 @app.route('/time', methods=['POST'])
 def time():
@@ -146,8 +171,6 @@ def time():
         message = "Invalid time format. Please use the following format: nn:nnn:nnn"
 
     return Response(client.chat_postMessage(channel=channel_id, text=message)), 200
-
-
 
 @app.route('/leaderboard', methods=['POST'])
 def leaderboard():
@@ -225,11 +248,13 @@ def help():
     client.chat_postEphemeral(channel=channel_id, user=user_id, text=message)
     return Response(), 200
 
-@app.route('/dashboard')
+@app.route('/leaderboard', methods=['GET'])
 def dashboard():
-    leaderboard = get_leaderboard()
+    leaderboard_with_real_names = []
+    for user, time_entry in get_leaderboard():
+        leaderboard_with_real_names.append((get_real_name_from_username(user) or user, time_entry))
     currentTrack = track_data
-    return render_template('dashboard.html', leaderboard=leaderboard, currentTrack=currentTrack)
+    return render_template('dashboard.html', leaderboard=leaderboard_with_real_names, currentTrack=currentTrack)
 
 if __name__ == '__main__':
     app.run(debug=False)
