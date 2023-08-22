@@ -6,92 +6,97 @@ from azure.storage.blob import BlobServiceClient
 
 app = Flask(__name__)
 
+debugMode = False
+
 # Initialize the Slack WebClient with your bot token
 client = WebClient(token=os.environ.get('SLACK_TOKEN'))
 
-# Load leaderboard data from Azure Blob Storage on startup
-LEADERBOARD_BLOB_CONTAINER = "mariobot-leaderboard"
-LEADERBOARD_BLOB_NAME = "leaderboard.json"
-TRACK_BLOB_NAME = "track.json"
-DEADLINE_BLOB_NAME = "deadline.json"
+if debugMode == False:
+    # Load leaderboard data from Azure Blob Storage on startup
+    LEADERBOARD_BLOB_CONTAINER = "mariobot-leaderboard"
+    LEADERBOARD_BLOB_NAME = "leaderboard.json"
+    TRACK_BLOB_NAME = "track.json"
+    DEADLINE_BLOB_NAME = "deadline.json"
 
 
-def connect_leaderboard_blob():
-    blob_service_client = BlobServiceClient.from_connection_string(os.environ["AZURE_CONNECTIONSTRING"])
-    blob_leaderboard_client = blob_service_client.get_blob_client(container=LEADERBOARD_BLOB_CONTAINER, blob=LEADERBOARD_BLOB_NAME)
-    return blob_leaderboard_client
+    def connect_leaderboard_blob():
+        blob_service_client = BlobServiceClient.from_connection_string(os.environ["AZURE_CONNECTIONSTRING"])
+        blob_leaderboard_client = blob_service_client.get_blob_client(container=LEADERBOARD_BLOB_CONTAINER, blob=LEADERBOARD_BLOB_NAME)
+        return blob_leaderboard_client
 
-def connect_track_blob():
-    blob_service_client = BlobServiceClient.from_connection_string(os.environ["AZURE_CONNECTIONSTRING"])
-    blob_track_client = blob_service_client.get_blob_client(container=LEADERBOARD_BLOB_CONTAINER, blob=TRACK_BLOB_NAME)
-    return blob_track_client
+    def connect_track_blob():
+        blob_service_client = BlobServiceClient.from_connection_string(os.environ["AZURE_CONNECTIONSTRING"])
+        blob_track_client = blob_service_client.get_blob_client(container=LEADERBOARD_BLOB_CONTAINER, blob=TRACK_BLOB_NAME)
+        return blob_track_client
 
-def connect_deadline_blob():
-    blob_service_client = BlobServiceClient.from_connection_string(os.environ["AZURE_CONNECTIONSTRING"])
-    blob_deadline_client = blob_service_client.get_blob_client(container=LEADERBOARD_BLOB_CONTAINER, blob=DEADLINE_BLOB_NAME)
-    return blob_deadline_client
+    def connect_deadline_blob():
+        blob_service_client = BlobServiceClient.from_connection_string(os.environ["AZURE_CONNECTIONSTRING"])
+        blob_deadline_client = blob_service_client.get_blob_client(container=LEADERBOARD_BLOB_CONTAINER, blob=DEADLINE_BLOB_NAME)
+        return blob_deadline_client
 
-def delete_leaderboard():
-    global leaderboard_data  # Access the global variable to modify it
-    leaderboard_data = {}    # Set the leaderboard_data dictionary to an empty dictionary
+    def delete_leaderboard():
+        global leaderboard_data  # Access the global variable to modify it
+        leaderboard_data = {}    # Set the leaderboard_data dictionary to an empty dictionary
 
-def load_leaderboard():
-    try:
+    def load_leaderboard():
+        try:
+            blob_leaderboard_client = connect_leaderboard_blob()
+
+            leaderboard_data_blob = blob_leaderboard_client.download_blob()
+            return json.loads(leaderboard_data_blob.readall())
+        except Exception as e:
+            return {e}
+
+    def save_leaderboard():
         blob_leaderboard_client = connect_leaderboard_blob()
 
-        leaderboard_data_blob = blob_leaderboard_client.download_blob()
-        return json.loads(leaderboard_data_blob.readall())
-    except Exception as e:
-        return {e}
+        blob_leaderboard_client.upload_blob(json.dumps(leaderboard_data), overwrite=True)
 
-def save_leaderboard():
-    blob_leaderboard_client = connect_leaderboard_blob()
+    def load_track():
+        try:
+            blob_track_client = connect_track_blob()
 
-    blob_leaderboard_client.upload_blob(json.dumps(leaderboard_data), overwrite=True)
+            track_data_blob = blob_track_client.download_blob()
+            return json.loads(track_data_blob.readall())
+        except Exception as e:
+            return {e}
 
-def load_track():
-    try:
+    def save_track():
         blob_track_client = connect_track_blob()
 
-        track_data_blob = blob_track_client.download_blob()
-        return json.loads(track_data_blob.readall())
-    except Exception as e:
-        return {e}
+        blob_track_client.upload_blob(json.dumps(track_data), overwrite=True)
 
-def save_track():
-    blob_track_client = connect_track_blob()
+    def load_deadline():
+        try:
+            blob_deadline_client = connect_deadline_blob()
 
-    blob_track_client.upload_blob(json.dumps(track_data), overwrite=True)
+            deadline_data_blob = blob_deadline_client.download_blob()
+            return json.loads(deadline_data_blob.readall())
+        except Exception as e:
+            return {e}
 
-def load_deadline():
-    try:
+    def save_deadline():
         blob_deadline_client = connect_deadline_blob()
 
-        deadline_data_blob = blob_deadline_client.download_blob()
-        return json.loads(deadline_data_blob.readall())
-    except Exception as e:
-        return {e}
+        blob_deadline_client.upload_blob(json.dumps(deadline_data), overwrite=True)
 
-def save_deadline():
-    blob_deadline_client = connect_deadline_blob()
+    leaderboard_data = load_leaderboard()
 
-    blob_deadline_client.upload_blob(json.dumps(deadline_data), overwrite=True)
+    track_data = load_track()
 
-leaderboard_data = load_leaderboard()
+    deadline_data = load_deadline()
 
-track_data = load_track()
+# get debugging data
+else: 
+    leaderboard_data = {
+    'user1': {'score': '12:123:123', 'display_name': 'User One'},
+    'user2': {'score': '45:672:453', 'display_name': 'User Two'},
+    'user3': {'score': '55:555:555', 'display_name': 'User Three'}
+    }
 
-deadline_data = load_deadline()
+    track_data = ''
 
-# leaderboard_data = {
-#     'user1': '12:123:123',
-#     'user2': '45:672:453',
-#     'user3': '55:555:555'
-# }
-
-# track_data = ''
-
-# deadline_data = ''
+    deadline_data = ''
 
 def get_track():
     if not any(track_data):
@@ -111,8 +116,8 @@ def update_deadline(message):
     global deadline_data
     deadline_data = message
 
-def update_leaderboard(user, score):
-    leaderboard_data[user] = score
+def update_leaderboard(user, score, display_name):
+    leaderboard_data[user] = {'score': score, 'display_name': display_name}
 
 def get_leaderboard():
     sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1])
@@ -124,8 +129,8 @@ def format_leaderboard():
         if not any(leaderboard_data.values()):
             return "Leaderboard is empty."
 
-    sorted_leaderboard = get_leaderboard()
-    leaderboard_str = "\n".join([f"{rank}. {score}     | <@{user}>" for rank, (user, score) in enumerate(sorted_leaderboard, start=1)])
+    sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1]['score'])
+    leaderboard_str = "\n".join([f"{rank}. {score['score']}     | <@{user}>" for rank, (user, score) in enumerate(sorted_leaderboard, start=1)])
     return f"Leaderboard:\n{leaderboard_str}"
 
 @app.route('/time', methods=['POST'])
@@ -134,16 +139,17 @@ def time():
     user = form_data['user_name']
     text = form_data.get('text', '')
     channel_id = form_data['channel_id']
+    display_name = get_display_name(form_data['user_id'])
 
     try:
         time = str(text)
-        update_leaderboard(user, time)
-        save_leaderboard()  # Save the leaderboard data to Azure Blob Storage after updating
+        update_leaderboard(user, time, display_name)
+        #save_leaderboard()  # Save the leaderboard data to Azure Blob Storage after updating
         leaderboard = format_leaderboard()
 
         message = f"Time score updated for <@{user}>. \n\n {leaderboard}"
     except ValueError:
-        message = "Invalid time format. Please use the following format: nn:nnn:nnn"
+        message = "Invalid time format. Please use the following format: n:nn:nnn"
 
     return Response(client.chat_postMessage(channel=channel_id, text=message)), 200
 
@@ -231,6 +237,15 @@ def dashboard():
     currentTrack = track_data
     return render_template('dashboard.html', leaderboard=leaderboard, currentTrack=currentTrack)
 
+def get_display_name(user_id):
+    try:
+        response = client.users_profile_get(user=user_id)
+        display_name = response['profile']['display_name_normalized']
+        return display_name
+    except Exception as e:
+        print(f"Error getting display name: {e}")
+        return None
+
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=debugMode)
 
