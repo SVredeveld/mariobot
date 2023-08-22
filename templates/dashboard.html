@@ -11,10 +11,10 @@
         <h1 class="title">Mario kart time trial</h1>
         <h2 class="subtitle">Current track: {{currentTrack}}</h2>
         <div class="leaderboardWrapper">
-            {% for user, time, display_name in leaderboard %}
+            {% for user, time in leaderboard %}
                 <div class="leaderboardItem">
                     <p >{{ loop.index }}.</p>
-                    <p>{{ display_name }}</p>
+                    <p>{{ user }}</p>
                     <p>{{ time }}</p>
                 </div>
             {% endfor %}
