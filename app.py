@@ -1,5 +1,6 @@
 import os
 import json
+import time as time_module
 from flask import Flask, request, Response, render_template
 from slack_sdk import WebClient
 from azure.storage.blob import BlobServiceClient
@@ -135,7 +136,7 @@ def format_leaderboard():
 # A function that get's the 'real_name' of a user we use caching since users_list 
 # gets all users in an organisation and that doesn't change that often
 def get_real_name_from_username(username):
-    current_time = time.time()
+    current_time = time_module.time()
     if current_time - user_cache["timestamp"] > CACHE_EXPIRATION_TIME:
         # If cache is expired, fetch the user list again and update the cache
         users_list = client.users_list()
