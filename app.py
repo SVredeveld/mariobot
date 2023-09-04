@@ -144,8 +144,9 @@ def time():
         message = f"Time score updated for <@{user}>. \n\n {leaderboard}"
     except ValueError:
         message = "Invalid time format. Please use the following format: nn:nnn:nnn"
-
-    return Response(client.chat_postMessage(channel=channel_id, text=message)), 200
+        
+    client.chat_postMessage(channel=channel_id, text=message)
+    return Response(), 200
 
 
 
