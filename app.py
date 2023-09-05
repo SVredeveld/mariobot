@@ -166,7 +166,7 @@ def time():
         save_leaderboard()  # Save the leaderboard data to Azure Blob Storage after updating
         leaderboard = format_leaderboard()
 
-        message = f"Time score updated for <@{user}>. \n\n {leaderboard}"
+        message = f"Time score updated for <@{user}> with a time of {time}. \n\n {leaderboard}"
     except ValueError:
         message = "Invalid time format. Please use the following format: nn:nnn:nnn"
         
