@@ -1,6 +1,7 @@
 import os
 import json
 import time as time_module
+import hupper
 from flask import Flask, request, Response, render_template
 from slack_sdk import WebClient
 from azure.storage.blob import BlobServiceClient
@@ -257,6 +258,11 @@ def dashboard():
     currentTrack = track_data
     return render_template('dashboard.html', leaderboard=leaderboard_with_real_names, currentTrack=currentTrack)
 
-if __name__ == '__main__':
-    app.run(debug=False)
+def start_app_development():
+    app.run(debug=True, host='0.0.0.0', port=5000)
 
+if __name__ == '__main__':
+    if os.environ.get("DEVELOPMENT") == "true":
+        hupper.start_reloader('app.start_app_development')
+    else:
+        app.run(debug=False)
