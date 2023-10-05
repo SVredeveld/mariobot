@@ -6,9 +6,12 @@ services:
       dockerfile: Dockerfile
     depends_on:
         - azurite
+    volumes:
+      - .:/usr/src/app
     environment:
-      - SLACK_TOKEN=<YourSlackToken>
-      - AZURE_CONNECTIONSTRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      - SLACK_TOKEN=${SLACK_TOKEN}
+      - AZURE_CONNECTIONSTRING=${AZURE_CONNECTIONSTRING}
+      - DEVELOPMENT=true
     ports:
       - "5000:5000"
     expose:
@@ -24,6 +27,11 @@ services:
           - /bin/sh
           - -c
           - |
+              # Check if initialized
+              if az storage container exists --name mariobot-leaderboard | grep -q '"exists": true'; then
+                  echo "Azurite already initialized, skipping..."
+                  exit 0
+              fi
               az storage container create --name mariobot-leaderboard
               touch /tmp/leaderboard.json
               az storage blob upload --container-name mariobot-leaderboard --type block --name leaderboard.json --content-type application/json --file /tmp/leaderboard.json
@@ -34,11 +42,11 @@ services:
       depends_on:
           - azurite
       environment:
-          AZURE_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+        - AZURE_STORAGE_CONNECTION_STRING=${AZURE_CONNECTIONSTRING}
   ngrok:
       image: ngrok/ngrok:alpine
       environment:
-          NGROK_AUTHTOKEN: '<YourNgrokToken>'
+         NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
       command: 'http bot:5000 --host-header="bot:5000"'        
       ports:
           - "4040:4040"
