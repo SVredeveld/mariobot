@@ -1,0 +1,46 @@
+version: '3'
+services:
+  bot:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+        - azurite
+    environment:
+      - SLACK_TOKEN=<YourSlackToken>
+      - AZURE_CONNECTIONSTRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+    ports:
+      - "5000:5000"
+    expose:
+      - "5000"
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: "azurite-blob --blobHost 0.0.0.0"
+    ports:
+      - "10000:10000"
+  azurite_init:
+      image: mcr.microsoft.com/azure-cli:latest
+      command:
+          - /bin/sh
+          - -c
+          - |
+              az storage container create --name mariobot-leaderboard
+              touch /tmp/leaderboard.json
+              az storage blob upload --container-name mariobot-leaderboard --type block --name leaderboard.json --content-type application/json --file /tmp/leaderboard.json
+              touch /tmp/track.json
+              az storage blob upload --container-name mariobot-leaderboard --type block --name track.json --content-type application/json --file /tmp/track.json
+              touch /tmp/deadline.json
+              az storage blob upload --container-name mariobot-leaderboard --type block --name deadline.json --content-type application/json --file /tmp/deadline.json
+      depends_on:
+          - azurite
+      environment:
+          AZURE_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+  ngrok:
+      image: ngrok/ngrok:alpine
+      environment:
+          NGROK_AUTHTOKEN: '<YourNgrokToken>'
+      command: 'http bot:5000 --host-header="bot:5000"'        
+      ports:
+          - "4040:4040"
+      expose:
+          - "4040"
