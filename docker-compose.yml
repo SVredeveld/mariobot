@@ -5,7 +5,8 @@ services:
       context: .
       dockerfile: Dockerfile
     depends_on:
-        - azurite
+      azurite_init:
+          condition: service_completed_successfully
     volumes:
       - .:/usr/src/app
     environment:
@@ -21,6 +22,8 @@ services:
     command: "azurite-blob --blobHost 0.0.0.0"
     ports:
       - "10000:10000"
+    expose:
+      - "10000"
   azurite_init:
       image: mcr.microsoft.com/azure-cli:latest
       command:
