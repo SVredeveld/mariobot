@@ -76,12 +76,15 @@ def reset_leaderboard():
     set_leaderboard(leaderboard)
 
 
+def sort_leaderboard(leaderboard):
+    return sorted(leaderboard.items(), key=lambda entry: entry[1])
+
+
 def format_leaderboard(leaderboard):
     if not leaderboard:
         return "Leaderboard is empty."
 
-    sorted_leaderboard = sorted(leaderboard.items(), key=lambda entry: entry[1])
-    formatted_leaderboard = "\n".join([f"{rank}. {score}\t| <@{user}>" for rank, (user, score) in enumerate(sorted_leaderboard, start=1)])
+    formatted_leaderboard = "\n".join([f"{rank}. {score}\t| <@{user}>" for rank, (user, score) in enumerate(sort_leaderboard(leaderboard), start=1)])
     return formatted_leaderboard
 
 
@@ -218,7 +221,8 @@ def command_help():
 @app.route('/leaderboard', methods=['GET'])
 def dashboard():
     leaderboard_with_real_names = []
-    for user, time_entry in get_leaderboard():
+    leaderboard = sort_leaderboard(get_leaderboard())
+    for user, time_entry in leaderboard():
         leaderboard_with_real_names.append((get_real_name_from_username(user) or user, time_entry))
     current_track = get_track()
     return render_template('dashboard.html', leaderboard=leaderboard_with_real_names, currentTrack=current_track)
