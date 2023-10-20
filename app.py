@@ -222,7 +222,7 @@ def command_help():
 def dashboard():
     leaderboard_with_real_names = []
     leaderboard = sort_leaderboard(get_leaderboard())
-    for user, time_entry in leaderboard():
+    for user, time_entry in leaderboard:
         leaderboard_with_real_names.append((get_real_name_from_username(user) or user, time_entry))
     current_track = get_track()
     return render_template('dashboard.html', leaderboard=leaderboard_with_real_names, currentTrack=current_track)
