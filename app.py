@@ -23,116 +23,70 @@ user_cache = {
 }
 CACHE_EXPIRATION_TIME = 3600
 
-def connect_leaderboard_blob():
+
+def connect_blob(blob_name):
     blob_service_client = BlobServiceClient.from_connection_string(os.environ["AZURE_CONNECTIONSTRING"])
-    blob_leaderboard_client = blob_service_client.get_blob_client(container=LEADERBOARD_BLOB_CONTAINER, blob=LEADERBOARD_BLOB_NAME)
-    return blob_leaderboard_client
+    return blob_service_client.get_blob_client(container=LEADERBOARD_BLOB_CONTAINER, blob=blob_name)
 
-def connect_track_blob():
-    blob_service_client = BlobServiceClient.from_connection_string(os.environ["AZURE_CONNECTIONSTRING"])
-    blob_track_client = blob_service_client.get_blob_client(container=LEADERBOARD_BLOB_CONTAINER, blob=TRACK_BLOB_NAME)
-    return blob_track_client
 
-def connect_deadline_blob():
-    blob_service_client = BlobServiceClient.from_connection_string(os.environ["AZURE_CONNECTIONSTRING"])
-    blob_deadline_client = blob_service_client.get_blob_client(container=LEADERBOARD_BLOB_CONTAINER, blob=DEADLINE_BLOB_NAME)
-    return blob_deadline_client
+def download_blob(blob_name):
+    blob_client = connect_blob(blob_name)
+    blob_content = blob_client.download_blob().readall()
+    return {} if not blob_content else json.loads(blob_content)
 
-def delete_leaderboard():
-    global leaderboard_data  # Access the global variable to modify it
-    leaderboard_data = {}    # Set the leaderboard_data dictionary to an empty dictionary
 
-def load_leaderboard():
-    try:
-        blob_leaderboard_client = connect_leaderboard_blob()
+def upload_blob(blob_name, data):
+    blob_client = connect_blob(blob_name)
+    blob_client.upload_blob(json.dumps(data), overwrite=True)
 
-        leaderboard_data_blob = blob_leaderboard_client.download_blob()
-        return json.loads(leaderboard_data_blob.readall())
-    except Exception as e:
-        return {e}
-
-def save_leaderboard():
-    blob_leaderboard_client = connect_leaderboard_blob()
-
-    blob_leaderboard_client.upload_blob(json.dumps(leaderboard_data), overwrite=True)
-
-def load_track():
-    try:
-        blob_track_client = connect_track_blob()
-
-        track_data_blob = blob_track_client.download_blob()
-        return json.loads(track_data_blob.readall())
-    except Exception as e:
-        return {e}
-
-def save_track():
-    blob_track_client = connect_track_blob()
-
-    blob_track_client.upload_blob(json.dumps(track_data), overwrite=True)
-
-def load_deadline():
-    try:
-        blob_deadline_client = connect_deadline_blob()
-
-        deadline_data_blob = blob_deadline_client.download_blob()
-        return json.loads(deadline_data_blob.readall())
-    except Exception as e:
-        return {e}
-
-def save_deadline():
-    blob_deadline_client = connect_deadline_blob()
-
-    blob_deadline_client.upload_blob(json.dumps(deadline_data), overwrite=True)
-
-leaderboard_data = load_leaderboard()
-
-track_data = load_track()
-
-deadline_data = load_deadline()
-
-# leaderboard_data = {
-#     'user1': '12:123:123',
-#     'user2': '45:672:453',
-#     'user3': '55:555:555'
-# }
-
-# track_data = ''
-
-# deadline_data = ''
 
 def get_track():
-    if not any(track_data):
-        return 'sorry, no track is selected yet'
-    return f"The new track to race on is: {track_data}"
+    return download_blob(TRACK_BLOB_NAME)
 
-def update_track(message):
-    global track_data
-    track_data = message
+
+def set_track(track):
+    upload_blob(TRACK_BLOB_NAME, track)
+
 
 def get_deadline():
-    if not any(deadline_data):
-        return 'sorry, no deadline is set yet'
-    return f"The last day to race on {track_data} is {deadline_data}"
+    return download_blob(DEADLINE_BLOB_NAME)
 
-def update_deadline(message):
-    global deadline_data
-    deadline_data = message
 
-def update_leaderboard(user, score):
-    leaderboard_data[user] = score
+def set_deadline(deadline):
+    upload_blob(DEADLINE_BLOB_NAME, deadline)
+
 
 def get_leaderboard():
-    sorted_leaderboard = sorted(leaderboard_data.items(), key=lambda x: x[1])
-    return sorted_leaderboard
+    return download_blob(LEADERBOARD_BLOB_NAME)
 
-def format_leaderboard():
-    if not any(leaderboard_data):
-        if not any(leaderboard_data.values()):
-            return "Leaderboard is empty."
 
-    sorted_leaderboard = get_leaderboard()
-    leaderboard_str = "\n".join([f"{rank}. {score}     | <@{user}>" for rank, (user, score) in enumerate(sorted_leaderboard, start=1)])
-    return f"Leaderboard:\n{leaderboard_str}"
+def set_leaderboard(leaderboard):
+    upload_blob(LEADERBOARD_BLOB_NAME, leaderboard)
+
+
+def update_leaderboard(user, time):
+    leaderboard = get_leaderboard()
+    leaderboard[user] = time
+    set_leaderboard(leaderboard)
+    return leaderboard
+
+
+def reset_leaderboard():
+    leaderboard = {}
+    set_leaderboard(leaderboard)
+
+
+def sort_leaderboard(leaderboard):
+    return sorted(leaderboard.items(), key=lambda entry: entry[1])
+
+
+def format_leaderboard(leaderboard):
+    if not leaderboard:
+        return "Leaderboard is empty."
+
+    formatted_leaderboard = "\n".join([f"{rank}. {score}\t| <@{user}>" for rank, (user, score) in enumerate(sort_leaderboard(leaderboard), start=1)])
+    return formatted_leaderboard
+
 
 # A function that gets the 'real_name' of a user. We use caching since users_list 
 # gets all users in an organisation and that doesn't change that often
@@ -154,94 +108,107 @@ def get_real_name_from_username(username):
 
     return None
 
+
 @app.route('/time', methods=['POST'])
-def time():
+def command_time():
     form_data = request.form
-    user = form_data['user_name']
-    text = form_data.get('text', '')
     channel_id = form_data['channel_id']
+    user = form_data['user_name']
+    time = str(form_data['text'])
 
-    try:
-        time = str(text)
-        update_leaderboard(user, time)
-        save_leaderboard()  # Save the leaderboard data to Azure Blob Storage after updating
-        leaderboard = format_leaderboard()
+    leaderboard = update_leaderboard(user, time)
+    text = f"Time score updated for <@{user}> with a time of {time}. \n\nNew leaderboard:\n{format_leaderboard(leaderboard)}"
 
-        message = f"Time score updated for <@{user}> with a time of {time}. \n\n {leaderboard}"
-    except ValueError:
-        message = "Invalid time format. Please use the following format: nn:nnn:nnn"
-        
-    client.chat_postMessage(channel=channel_id, text=message)
+    client.chat_postMessage(channel=channel_id, text=text)
     return Response(), 200
+
 
 @app.route('/leaderboard', methods=['POST'])
-def leaderboard():
+def command_leaderboard():
     form_data = request.form
     channel_id = form_data['channel_id']
     user_id = form_data["user_id"]
-    
-    message = format_leaderboard()
-    client.chat_postEphemeral(channel=channel_id, user=user_id, text=message)
+
+    leaderboard = get_leaderboard()
+    text = (f"Current leaderboard:\n{format_leaderboard(leaderboard)}"
+            if leaderboard
+            else f"Sorry, no time has been set on the leaderboard yet. Be the first to do so!")
+
+    client.chat_postEphemeral(channel=channel_id, user=user_id, text=text)
     return Response(), 200
+
 
 @app.route('/resetleaderboard', methods=['POST'])
-def resetleaderboard():
+def command_resetleaderboard():
     form_data = request.form
-    leaderboardMessage = format_leaderboard()
-    resetmessage = "And the games have ended! Congrats to the winner!\n"
     channel_id = form_data['channel_id']
 
-    delete_leaderboard()  # Call the function to reset the leaderboard_data dictionary
-    client.chat_postMessage(channel=channel_id, text=resetmessage + leaderboardMessage)
+    leaderboard = get_leaderboard()
+    reset_leaderboard()
+    text = f"And the games have ended! Congrats to the winner!\n{format_leaderboard(leaderboard)}"
+
+    client.chat_postMessage(channel=channel_id, text=text)
     return Response(), 200
+
 
 @app.route('/track', methods=["POST"])
-def track():
+def command_track():
     form_data = request.form
-    text = get_track()
     channel_id = form_data['channel_id']
     user_id = form_data["user_id"]
 
+    track = get_track()
+    text = (f"The current track to race on is: {track}."
+            if track
+            else f"Sorry, no track has been selected yet.")
 
     client.chat_postEphemeral(channel=channel_id, user=user_id, text=text)
     return Response(), 200
+
 
 @app.route('/setnewtrack', methods=["POST"])
-def setnewtrack():
+def command_setnewtrack():
     form_data = request.form
-    message = form_data['text']
-    update_track(message)
     channel_id = form_data['channel_id']
-    testmessage = get_track()
-    save_track()
+    track = str(form_data['text'])
 
-    client.chat_postMessage(channel=channel_id, text=testmessage)
+    set_track(track)
+    text = f"The new track to race on is: {track}."
+
+    client.chat_postMessage(channel=channel_id, text=text)
     return Response(), 200
 
+
 @app.route('/deadline', methods=["POST"])
-def deadline():
+def command_deadline():
     form_data = request.form
-    text = get_deadline()
     channel_id = form_data['channel_id']
     user_id = form_data["user_id"]
+
+    deadline = get_deadline()
+    text = (f"The last day to race on the current track is set on: {deadline}."
+            if deadline
+            else f"Sorry, no deadline has been set yet.")
 
     client.chat_postEphemeral(channel=channel_id, user=user_id, text=text)
     return Response(), 200
 
-@app.route('/setnewdeadline', methods=["POST"])
-def setnewdeadline():
-    form_data = request.form
-    message = form_data['text']
-    update_deadline(message)
-    channel_id = form_data['channel_id']
-    testmessage = get_deadline()
-    save_deadline()
 
-    client.chat_postMessage(channel=channel_id, text=testmessage)
+@app.route('/setnewdeadline', methods=["POST"])
+def command_setnewdeadline():
+    form_data = request.form
+    channel_id = form_data['channel_id']
+    deadline = str(form_data['text'])
+
+    set_deadline(deadline)
+    text = f"The last day to race on the current track is now set on: {deadline}."
+
+    client.chat_postMessage(channel=channel_id, text=text)
     return Response(), 200
 
+
 @app.route('/help', methods=["POST"])
-def help():
+def command_help():
     form_data = request.form
     channel_id = form_data['channel_id']
     user_id = form_data['user_id']
@@ -250,16 +217,20 @@ def help():
     client.chat_postEphemeral(channel=channel_id, user=user_id, text=message)
     return Response(), 200
 
+
 @app.route('/leaderboard', methods=['GET'])
 def dashboard():
     leaderboard_with_real_names = []
-    for user, time_entry in get_leaderboard():
+    leaderboard = sort_leaderboard(get_leaderboard())
+    for user, time_entry in leaderboard:
         leaderboard_with_real_names.append((get_real_name_from_username(user) or user, time_entry))
-    currentTrack = track_data
-    return render_template('dashboard.html', leaderboard=leaderboard_with_real_names, currentTrack=currentTrack)
+    current_track = get_track()
+    return render_template('dashboard.html', leaderboard=leaderboard_with_real_names, currentTrack=current_track)
+
 
 def start_app_development():
     app.run(debug=True, host='0.0.0.0', port=5000)
+
 
 if __name__ == '__main__':
     if os.environ.get("DEVELOPMENT") == "true":
