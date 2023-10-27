@@ -88,6 +88,14 @@ def format_leaderboard(leaderboard):
     return formatted_leaderboard
 
 
+def get_placement_of_user(user):
+    leaderboard = sort_leaderboard(get_leaderboard())
+    try:
+        return leaderboard[0].index(user) + 1
+    except:
+        return len(leaderboard)
+
+
 # A function that gets the 'real_name' of a user. We use caching since users_list 
 # gets all users in an organisation and that doesn't change that often
 def get_real_name_from_username(username):
@@ -117,7 +125,18 @@ def command_time():
     time = str(form_data['text'])
 
     leaderboard = update_leaderboard(user, time)
-    text = f"Time score updated for <@{user}> with a time of {time}. \n\nNew leaderboard:\n{format_leaderboard(leaderboard)}"
+    current_placement = get_placement_of_user(user)
+
+    if current_placement == 1:
+        text = f"NEW FASTEST TIME! <@{user}> set a new track record with a time of {time}."
+    elif current_placement == 2:
+        text = f"NEW SECOND TIME! <@{user}> set a new second track time with a time of {time}."
+    elif current_placement == 3:
+        text = f"NEW THIRD TIME! <@{user}> set a new third track time with a time of {time}."
+    else:
+        text = f"Time score updated for <@{user}> with a time of {time}."
+
+    text += f"\n\nNew leaderboard:\n{format_leaderboard(leaderboard)}"
 
     client.chat_postMessage(channel=channel_id, text=text)
     return Response(), 200
