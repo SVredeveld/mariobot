@@ -124,6 +124,7 @@ def command_time():
     user = form_data['user_name']
     time = str(form_data['text'])
 
+    previous_placement = get_placement_of_user(user)
     leaderboard = update_leaderboard(user, time)
     current_placement = get_placement_of_user(user)
 
@@ -137,6 +138,11 @@ def command_time():
         text = f"Time score updated for <@{user}> with a time of {time}."
 
     text += f"\n\nNew leaderboard:\n{format_leaderboard(leaderboard)}"
+
+    if previous_placement == current_placement:
+        text += f" They stayed at place {previous_placement}."
+    else:
+        text += f"They went from place {previous_placement} to place {current_placement}!"
 
     client.chat_postMessage(channel=channel_id, text=text)
     return Response(), 200
