@@ -93,7 +93,7 @@ def get_placement_of_user(user):
     try:
         return leaderboard[0].index(user) + 1
     except:
-        return len(leaderboard)
+        return 0
 
 
 # A function that gets the 'real_name' of a user. We use caching since users_list 
@@ -124,6 +124,7 @@ def command_time():
     user = form_data['user_name']
     time = str(form_data['text'])
 
+    previous_placement = get_placement_of_user(user)
     leaderboard = update_leaderboard(user, time)
     current_placement = get_placement_of_user(user)
 
@@ -137,6 +138,13 @@ def command_time():
         text = f"Time score updated for <@{user}> with a time of {time}."
 
     text += f"\n\nNew leaderboard:\n{format_leaderboard(leaderboard)}"
+
+    if previous_placement == 0:
+        text += f" entered the race at place {current_placement}!"
+    elif previous_placement != 0 and previous_placement == current_placement:
+        text += f" remained at place {previous_placement}."
+    else:
+        text += f" went from place {previous_placement} to place {current_placement}!"
 
     client.chat_postMessage(channel=channel_id, text=text)
     return Response(), 200
