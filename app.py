@@ -91,7 +91,7 @@ def format_leaderboard(leaderboard):
 def get_placement_of_user(user):
     leaderboard = sort_leaderboard(get_leaderboard())
     try:
-        return leaderboard[0].index(user) + 1
+        return list(dict(leaderboard).keys()).index(user) + 1
     except:
         return 0
 
