@@ -2,6 +2,7 @@ import os
 import json
 import time as time_module
 import hupper
+import re
 from flask import Flask, request, Response, render_template
 from slack_sdk import WebClient
 from azure.storage.blob import BlobServiceClient
@@ -88,6 +89,18 @@ def format_leaderboard(leaderboard):
     return formatted_leaderboard
 
 
+# Checks if time is in format x:xx:xxx with some leniency in delimiters
+# Also makes sure that the number of minutes does not surpass 59
+def is_valid_time(time):
+    pattern = r"^\d[:.,-][0-5]\d[:.,-]\d{3}$"
+    return re.match(pattern, time)
+
+
+# Assumes a valid time. Returns time in the format used in the game.
+def format_time(time):
+    return f"{time[0]}:{time[2:4]}.{time[5:]}"
+
+
 def get_placement_of_user(user):
     leaderboard = sort_leaderboard(get_leaderboard())
     try:
@@ -122,8 +135,15 @@ def command_time():
     form_data = request.form
     channel_id = form_data['channel_id']
     user = form_data['user_name']
+    user_id = form_data['user_id']
     time = str(form_data['text'])
 
+    if not is_valid_time(time):
+        text = f"Your time of {time} is not in the format `1:23.456`. Please try again!"
+        client.chat_postEphemeral(channel=channel_id, user=user_id, text=text)
+        return Response(), 200
+
+    time = format_time(time)
     previous_placement = get_placement_of_user(user)
     leaderboard = update_leaderboard(user, time)
     current_placement = get_placement_of_user(user)
