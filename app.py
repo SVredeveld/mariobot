@@ -137,14 +137,14 @@ def command_time():
     else:
         text = f"Time score updated for <@{user}> with a time of {time}."
 
-    text += f"\n\nNew leaderboard:\n{format_leaderboard(leaderboard)}"
-
     if previous_placement == 0:
-        text += f" entered the race at place {current_placement}!"
+        text += f" They entered the race at place {current_placement}!"
     elif previous_placement != 0 and previous_placement == current_placement:
-        text += f" remained at place {previous_placement}."
+        text += f" They remained at place {previous_placement}."
     else:
-        text += f" went from place {previous_placement} to place {current_placement}!"
+        text += f" They went from place {previous_placement} to place {current_placement}!"
+
+    text += f"\n\nNew leaderboard:\n{format_leaderboard(leaderboard)}"
 
     client.chat_postMessage(channel=channel_id, text=text)
     return Response(), 200
