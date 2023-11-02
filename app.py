@@ -2,6 +2,7 @@ import os
 import json
 import time as time_module
 import hupper
+import re
 from flask import Flask, request, Response, render_template
 from slack_sdk import WebClient
 from azure.storage.blob import BlobServiceClient
@@ -77,15 +78,28 @@ def reset_leaderboard():
 
 
 def sort_leaderboard(leaderboard):
-    return sorted(leaderboard.items(), key=lambda entry: entry[1])
+    return sorted(leaderboard.items(), key=lambda entry: int(''.join(re.findall(r"\d+", entry[1]))))
 
 
 def format_leaderboard(leaderboard):
     if not leaderboard:
         return "Leaderboard is empty."
 
-    formatted_leaderboard = "\n".join([f"{rank}. {score}\t| <@{user}>" for rank, (user, score) in enumerate(sort_leaderboard(leaderboard), start=1)])
+    formatted_leaderboard = "\n".join([f"{rank}. {format_time(time)}\t| <@{user}>" for rank, (user, time) in enumerate(sort_leaderboard(leaderboard), start=1)])
     return formatted_leaderboard
+
+
+# Checks if time is in format (M:SS.mmm) with leniency in delimiters
+# Also makes sure that the number of minutes does not surpass 59
+def is_valid_time(time):
+    pattern = r"^[0-9][^\d][0-5][0-9][^\d][0-9]{3}$"
+    return re.match(pattern, time)
+
+
+# Assumes a valid time format. Returns time in the format used in the game (M:SS.mmm)
+def format_time(time):
+    minutes, seconds, milliseconds = re.findall(r"\d+", time)
+    return f"{minutes}:{seconds}.{milliseconds}"
 
 
 def get_placement_of_user(user):
@@ -122,8 +136,15 @@ def command_time():
     form_data = request.form
     channel_id = form_data['channel_id']
     user = form_data['user_name']
+    user_id = form_data['user_id']
     time = str(form_data['text'])
 
+    if not is_valid_time(time):
+        text = f"Your time of {time} is not in the format `M:SS.mmm` (minutes `0-9`, seconds `00-59`, milliseconds `000-999`). Please try again!"
+        client.chat_postEphemeral(channel=channel_id, user=user_id, text=text)
+        return Response(), 200
+
+    time = format_time(time)
     previous_placement = get_placement_of_user(user)
     leaderboard = update_leaderboard(user, time)
     current_placement = get_placement_of_user(user)
@@ -249,8 +270,8 @@ def command_help():
 def dashboard():
     leaderboard_with_real_names = []
     leaderboard = sort_leaderboard(get_leaderboard())
-    for user, time_entry in leaderboard:
-        leaderboard_with_real_names.append((get_real_name_from_username(user) or user, time_entry))
+    for user, time in leaderboard:
+        leaderboard_with_real_names.append((get_real_name_from_username(user) or user, format_time(time)))
     current_track = get_track()
     return render_template('dashboard.html', leaderboard=leaderboard_with_real_names, currentTrack=current_track)
 
